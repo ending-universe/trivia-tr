@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TriviaТR — Türkçe Bilgi Yarışması</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#0a0a0f; --surface:#12121a; --surface2:#1c1c2a; --border:#2a2a3e;
+    --accent:#f0c040; --accent2:#e05a30; --accent3:#40c0a0;
+    --text:#e8e8f0; --text-dim:#8888aa;
+    --easy:#40c0a0; --medium:#f0c040; --hard:#e05a30;
+    --true-col:#40c0a0; --false-col:#e05a30;
+    --radius:4px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);pointer-events:none;z-index:9999}
+  body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(240,192,64,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(240,192,64,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  .app{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 16px 60px}
+
+  /* HEADER */
+  .header{display:flex;align-items:center;justify-content:space-between;padding:24px 0 20px;border-bottom:1px solid var(--border);margin-bottom:40px}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:.06em;color:var(--accent);text-shadow:0 0 30px rgba(240,192,64,.4);line-height:1}
+  .logo span{color:var(--accent2)}
+  .settings-btn{background:none;border:1px solid var(--border);color:var(--text-dim);padding:8px 14px;cursor:pointer;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;transition:all .2s}
+  .settings-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* PAGES */
+  .page{display:none;animation:fadeIn .3s ease}
+  .page.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  /* HOME */
+  .home-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,6rem);line-height:.9;margin-bottom:8px;letter-spacing:.02em}
+  .home-title em{color:var(--accent);font-style:normal}
+  .home-sub{color:var(--text-dim);font-size:.95rem;margin-bottom:40px;letter-spacing:.04em}
+  .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .config-grid.full{grid-template-columns:1fr}
+  .field{display:flex;flex-direction:column;gap:8px}
+  .field label{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+  .field select,.field input[type=number]{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:.95rem;outline:none;transition:border-color .2s;-webkit-appearance:none;cursor:pointer}
+  .field select:focus,.field input[type=number]:focus{border-color:var(--accent)}
+  .field select option{background:var(--surface2)}
+  .btn-primary{display:block;width:100%;padding:18px;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.12em;cursor:pointer;margin-top:24px;transition:all .15s}
+  .btn-primary:hover{background:#ffd060;transform:translateY(-2px);box-shadow:0 8px 24px rgba(240,192,64,.3)}
+  .btn-primary:active{transform:none}
+  .btn-primary:disabled{background:var(--border);color:var(--text-dim);cursor:not-allowed;transform:none;box-shadow:none}
+
+  /* LOADING */
+  #loadingPage{text-align:center;padding:80px 0}
+  .loader{display:inline-flex;gap:8px;margin-bottom:24px}
+  .loader span{width:12px;height:12px;background:var(--accent);border-radius:50%;animation:bounce .9s infinite}
+  .loader span:nth-child(2){animation-delay:.15s;background:var(--accent2)}
+  .loader span:nth-child(3){animation-delay:.3s;background:var(--accent3)}
+  @keyframes bounce{0%,80%,100%{transform:scale(.8);opacity:.5}40%{transform:scale(1.2);opacity:1}}
+  .loading-text{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:.12em;color:var(--text-dim)}
+  .loading-sub{color:var(--text-dim);font-size:.85rem;margin-top:8px}
+
+  /* QUIZ COMMON */
+  .quiz-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+  .progress-bar-wrap{flex:1;min-width:140px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+  .progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .4s ease}
+  .meta-right{display:flex;align-items:center;gap:14px}
+  .badge{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:2px;border:1px solid;font-weight:700}
+  .badge.easy{color:var(--easy);border-color:var(--easy)}
+  .badge.medium{color:var(--medium);border-color:var(--medium)}
+  .badge.hard{color:var(--hard);border-color:var(--hard)}
+  .q-counter{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--text-dim);letter-spacing:.08em}
+  .timer-ring{position:relative;width:52px;height:52px;flex-shrink:0}
+  .timer-ring svg{transform:rotate(-90deg)}
+  .timer-ring circle{transition:stroke-dashoffset 1s linear}
+  .timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--accent)}
+  .timer-ring.urgent .timer-num{color:var(--hard);animation:pulse .5s infinite alternate}
+  .timer-ring.urgent circle.fg{stroke:var(--hard)}
+  @keyframes pulse{from{opacity:1}to{opacity:.4}}
+
+  /* LANG TOGGLE */
+  .lang-toggle{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:'Syne',sans-serif;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);background:var(--surface);transition:all .2s;user-select:none}
+  .lang-toggle:hover{border-color:var(--accent3);color:var(--accent3)}
+  .lang-toggle .flag{font-size:1rem}
+
+  /* ═══ MULTIPLE CHOICE ═══ */
+  .question-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:28px;margin-bottom:20px}
+  .question-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px}
+  .question-category{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+  .question-text{font-size:1.15rem;font-weight:700;line-height:1.55}
+  .question-text.en{color:var(--accent3)}
+  .answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  .answer-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:16px 18px;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:.9rem;text-align:left;cursor:pointer;transition:all .15s;line-height:1.4;display:flex;align-items:flex-start;gap:10px}
+  .answer-btn .letter{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--accent);flex-shrink:0;width:20px}
+  .answer-btn:hover:not(:disabled){border-color:var(--accent);background:var(--surface2);transform:translateY(-2px)}
+  .answer-btn.correct{border-color:var(--easy);background:rgba(64,192,160,.12);color:var(--easy)}
+  .answer-btn.correct .letter{color:var(--easy)}
+  .answer-btn.wrong{border-color:var(--hard);background:rgba(224,90,48,.12);color:var(--hard)}
+  .answer-btn.wrong .letter{color:var(--hard)}
+  .answer-btn:disabled{cursor:default;transform:none}
+  .next-btn{display:none;width:100%;padding:14px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.1em;cursor:pointer;transition:all .15s}
+  .next-btn:hover{background:var(--accent);color:#0a0a0f}
+  .next-btn.visible{display:block}
+
+  /* ═══ SWIPE / BOOLEAN ═══ */
+  #swipePage{display:none}
+  #swipePage.active{display:block}
+
+  .swipe-arena{position:relative;height:360px;display:flex;align-items:center;justify-content:center;margin-bottom:28px}
+
+  /* Hint labels */
+  .swipe-hint-left,.swipe-hint-right{position:absolute;top:50%;transform:translateY(-50%);font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.12em;opacity:0;transition:opacity .15s;pointer-events:none;z-index:2}
+  .swipe-hint-left{left:0;color:var(--false-col)}
+  .swipe-hint-right{right:0;color:var(--true-col)}
+
+  .swipe-card-wrap{position:relative;width:100%;max-width:420px;height:300px;perspective:800px}
+
+  .swipe-card{
+    position:absolute;inset:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:32px 28px;
+    display:flex;flex-direction:column;justify-content:space-between;
+    cursor:grab;
+    user-select:none;
+    transition:box-shadow .2s;
+    will-change:transform;
+    touch-action:none;
+  }
+  .swipe-card:active{cursor:grabbing}
+  .swipe-card.animating{transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .45s}
+  .swipe-card.decided-right{transform:translateX(140%) rotate(18deg)!important;opacity:0}
+  .swipe-card.decided-left{transform:translateX(-140%) rotate(-18deg)!important;opacity:0}
+  .swipe-card.snap-back{transition:transform .35s cubic-bezier(.4,0,.2,1)}
+
+  /* Overlay stamps */
+  .swipe-card .stamp{
+    position:absolute;top:24px;font-family:'Bebas Neue',sans-serif;font-size:2rem;
+    letter-spacing:.12em;border:3px solid;padding:4px 14px;border-radius:4px;
+    opacity:0;transition:opacity .1s;pointer-events:none;
+  }
+  .swipe-card .stamp-true{right:20px;color:var(--true-col);border-color:var(--true-col)}
+  .swipe-card .stamp-false{left:20px;color:var(--false-col);border-color:var(--false-col)}
+
+  .swipe-card-category{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:16px}
+  .swipe-card-question{font-size:1.25rem;font-weight:700;line-height:1.55;flex:1}
+  .swipe-card-question.en{color:var(--accent3)}
+  .swipe-card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+
+  /* Swipe result overlay */
+  .swipe-result{
+    position:absolute;inset:0;border-radius:16px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;
+    opacity:0;pointer-events:none;transition:opacity .2s;
+    z-index:3;
+  }
+  .swipe-result.show{opacity:1}
+  .swipe-result.correct-res{background:rgba(64,192,160,.18);border:2px solid var(--true-col)}
+  .swipe-result.wrong-res{background:rgba(224,90,48,.18);border:2px solid var(--false-col)}
+  .swipe-result .res-icon{font-size:3rem;margin-bottom:8px}
+  .swipe-result .res-text{font-size:1.4rem;color:var(--text)}
+  .swipe-result .res-answer{font-size:.9rem;color:var(--text-dim);margin-top:6px;font-family:'Syne',sans-serif;letter-spacing:0}
+
+  /* Swipe buttons */
+  .swipe-btns{display:flex;justify-content:center;gap:20px;margin-bottom:20px}
+  .swipe-btn{width:68px;height:68px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:1.8rem;cursor:pointer;transition:all .15s;background:var(--surface)}
+  .swipe-btn-false{border-color:var(--false-col);color:var(--false-col)}
+  .swipe-btn-false:hover:not(:disabled){background:var(--false-col);color:#fff;transform:scale(1.1)}
+  .swipe-btn-true{border-color:var(--true-col);color:var(--true-col)}
+  .swipe-btn-true:hover:not(:disabled){background:var(--true-col);color:#fff;transform:scale(1.1)}
+  .swipe-btn:disabled{opacity:.35;cursor:default;transform:none}
+
+  .swipe-next-btn{display:none;width:100%;padding:14px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.1em;cursor:pointer;transition:all .15s;margin-top:4px}
+  .swipe-next-btn:hover{background:var(--accent);color:#0a0a0f}
+  .swipe-next-btn.visible{display:block}
+
+  .swipe-instr{text-align:center;font-size:.78rem;color:var(--text-dim);letter-spacing:.06em;margin-top:-8px;margin-bottom:16px}
+
+  /* RESULTS */
+  .results-header{text-align:center;padding:40px 0 32px}
+  .result-score-ring{width:140px;height:140px;border-radius:50%;border:4px solid var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 0 40px rgba(240,192,64,.2)}
+  .result-score-num{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:var(--accent);line-height:1}
+  .result-score-total{font-size:.8rem;color:var(--text-dim)}
+  .result-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:.08em;margin-bottom:8px}
+  .result-pct{font-size:1.1rem;color:var(--text-dim)}
+  .results-breakdown{margin:32px 0}
+  .breakdown-title{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px}
+  .breakdown-item{display:flex;align-items:flex-start;gap:14px;padding:12px 0;border-bottom:1px solid rgba(42,42,62,.5)}
+  .breakdown-icon{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;margin-top:2px}
+  .breakdown-icon.ok{background:rgba(64,192,160,.2);color:var(--easy)}
+  .breakdown-icon.no{background:rgba(224,90,48,.2);color:var(--hard)}
+  .breakdown-q{font-size:.9rem;line-height:1.5;flex:1}
+  .breakdown-meta{font-size:.75rem;color:var(--text-dim);margin-top:3px}
+  .breakdown-meta .c{color:var(--easy)}
+  .breakdown-meta .w{color:var(--hard)}
+  .results-btns{display:flex;gap:12px;margin-top:32px}
+  .btn-secondary{flex:1;padding:14px;background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em;cursor:pointer;transition:all .15s}
+  .btn-secondary:hover{border-color:var(--text);color:var(--text)}
+
+  /* SETTINGS MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,10,15,.85);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:28px;width:100%;max-width:440px;animation:fadeIn .2s ease}
+  .modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:.1em;color:var(--accent);margin-bottom:24px}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+  .toggle-info{flex:1}
+  .toggle-label{font-weight:700;font-size:.95rem}
+  .toggle-desc{font-size:.8rem;color:var(--text-dim);margin-top:3px}
+  .toggle{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+  .toggle input{opacity:0;width:0;height:0}
+  .toggle-track{position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:background .2s}
+  .toggle-track::after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;background:var(--text-dim);border-radius:50%;transition:all .2s}
+  .toggle input:checked+.toggle-track{background:var(--accent3)}
+  .toggle input:checked+.toggle-track::after{transform:translateX(20px);background:#fff}
+  .cache-stats{margin-top:14px;font-size:.8rem;color:var(--text-dim);background:var(--surface2);padding:10px 14px;border-radius:var(--radius)}
+  .cache-stats strong{color:var(--text)}
+  .modal-actions{display:flex;justify-content:space-between;align-items:center;margin-top:24px;gap:10px}
+  .btn-danger{padding:10px 18px;background:transparent;border:1px solid var(--hard);color:var(--hard);border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s}
+  .btn-danger:hover{background:var(--hard);color:#fff}
+  .btn-close{padding:10px 24px;background:var(--accent);border:none;color:#0a0a0f;border-radius:var(--radius);font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em;cursor:pointer}
+
+  .error-banner{background:rgba(224,90,48,.15);border:1px solid var(--hard);color:var(--hard);padding:14px 18px;border-radius:var(--radius);font-size:.9rem;margin-bottom:20px;display:none}
+  .error-banner.show{display:block}
+
+  @media(max-width:520px){
+    .config-grid,.answers-grid{grid-template-columns:1fr}
+    .results-btns{flex-direction:column}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="header">
+    <div class="logo">Trivia<span>TR</span></div>
+    <button class="settings-btn" onclick="openSettings()">⚙ Ayarlar</button>
+  </header>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- ── HOME ── -->
+  <div class="page active" id="homePage">
+    <div class="home-title">BİLGİ<br>YARIŞMASI<em>!</em></div>
+    <div class="home-sub">Open Trivia Database sorularını Türkçe cevaplayın</div>
+    <div class="config-grid full">
+      <div class="field">
+        <label>Kategori</label>
+        <select id="categorySelect"><option value="">Yükleniyor...</option></select>
+      </div>
+    </div>
+    <div class="config-grid">
+      <div class="field">
+        <label>Zorluk</label>
+        <select id="difficultySelect">
+          <option value="">Tümü</option>
+          <option value="easy">Kolay</option>
+          <option value="medium">Orta</option>
+          <option value="hard">Zor</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Soru Sayısı</label>
+        <input type="number" id="amountInput" value="10" min="5" max="30"/>
+      </div>
+    </div>
+    <div class="config-grid full">
+      <div class="field">
+        <label>Soru Türü</label>
+        <select id="typeSelect">
+          <option value="mixed">Karma (Çoktan Seçmeli + Doğru/Yanlış)</option>
+          <option value="multiple">Sadece Çoktan Seçmeli</option>
+          <option value="boolean">Sadece Doğru / Yanlış (Swipe)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" id="startBtn" onclick="startQuiz()" disabled>OYUNU BAŞLAT</button>
+  </div>
+
+  <!-- ── LOADING ── -->
+  <div class="page" id="loadingPage">
+    <div class="loader"><span></span><span></span><span></span></div>
+    <div class="loading-text">Sorular Yükleniyor</div>
+    <div class="loading-sub">OpenTDB'den çekiliyor ve Türkçe'ye çevriliyor…</div>
+  </div>
+
+  <!-- ── MULTIPLE CHOICE ── -->
+  <div class="page" id="quizPage">
+    <div class="quiz-meta">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+      <div class="meta-right">
+        <span class="q-counter" id="qCounter">1 / 10</span>
+        <span class="badge medium" id="diffBadge">Orta</span>
+        <div class="timer-ring" id="timerRing">
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#2a2a3e" stroke-width="3"/>
+            <circle class="fg" id="timerCircle" cx="26" cy="26" r="22" fill="none" stroke="#f0c040"
+              stroke-width="3" stroke-dasharray="138.23" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+          <div class="timer-num" id="timerNum">30</div>
+        </div>
+      </div>
+    </div>
+    <div class="question-card">
+      <div class="question-card-top">
+        <div class="question-category" id="qCategory">Kategori</div>
+        <button class="lang-toggle" id="langToggleMulti" onclick="toggleLang('multi')">
+          <span class="flag">🇬🇧</span> İngilizce
+        </button>
+      </div>
+      <div class="question-text" id="qText">Soru yükleniyor...</div>
+    </div>
+    <div class="answers-grid" id="answersGrid"></div>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">SONRAKİ SORU →</button>
+  </div>
+
+  <!-- ── SWIPE / BOOLEAN ── -->
+  <div class="page" id="swipePage">
+    <div class="quiz-meta">
+      <div class="progress-bar-wrap"><div class="progress-bar" id="swipeProgressBar" style="width:0%"></div></div>
+      <div class="meta-right">
+        <span class="q-counter" id="swipeCounter">1 / 5</span>
+        <span class="badge medium" id="swipeDiffBadge">Orta</span>
+        <div class="timer-ring" id="swipeTimerRing">
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#2a2a3e" stroke-width="3"/>
+            <circle class="fg" id="swipeTimerCircle" cx="26" cy="26" r="22" fill="none" stroke="#f0c040"
+              stroke-width="3" stroke-dasharray="138.23" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+          <div class="timer-num" id="swipeTimerNum">30</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="swipe-arena">
+      <div class="swipe-hint-left" id="hintLeft">✗ YANLIŞ</div>
+      <div class="swipe-hint-right" id="hintRight">✓ DOĞRU</div>
+      <div class="swipe-card-wrap">
+        <div class="swipe-card" id="swipeCard">
+          <div>
+            <div class="swipe-card-category" id="swipeCategory">Kategori</div>
+            <div class="swipe-card-question" id="swipeQuestion">Soru...</div>
+          </div>
+          <div class="swipe-card-footer">
+            <button class="lang-toggle" id="langToggleSwipe" onclick="toggleLang('swipe')">
+              <span class="flag">🇬🇧</span> İngilizce
+            </button>
+            <span style="font-size:.75rem;color:var(--text-dim);letter-spacing:.06em">← Yanlış &nbsp; Doğru →</span>
+          </div>
+          <!-- Stamps -->
+          <div class="stamp stamp-true">DOĞRU ✓</div>
+          <div class="stamp stamp-false">✗ YANLIŞ</div>
+        </div>
+        <!-- Result overlay -->
+        <div class="swipe-result" id="swipeResult">
+          <div class="res-icon" id="resIcon">✓</div>
+          <div class="res-text" id="resText">Doğru!</div>
+          <div class="res-answer" id="resAnswer"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="swipe-instr">Kaydır ya da butonlara bas</div>
+
+    <div class="swipe-btns">
+      <button class="swipe-btn swipe-btn-false" id="btnFalse" onclick="swipeAnswer('False')" title="Yanlış">✗</button>
+      <button class="swipe-btn swipe-btn-true"  id="btnTrue"  onclick="swipeAnswer('True')"  title="Doğru">✓</button>
+    </div>
+    <button class="swipe-next-btn" id="swipeNextBtn" onclick="nextQuestion()">SONRAKİ SORU →</button>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div class="page" id="resultsPage">
+    <div class="results-header">
+      <div class="result-score-ring" id="scoreRing">
+        <div class="result-score-num" id="scoreNum">0</div>
+        <div class="result-score-total" id="scoreTotal">/ 10 doğru</div>
+      </div>
+      <div class="result-title" id="resultTitle">TEBRIKLER!</div>
+      <div class="result-pct" id="resultPct">%80 başarı</div>
+    </div>
+    <div class="results-breakdown">
+      <div class="breakdown-title">Soru Özeti</div>
+      <div id="breakdownList"></div>
+    </div>
+    <div class="results-btns">
+      <button class="btn-secondary" onclick="goHome()">← ANA SAYFA</button>
+      <button class="btn-primary" style="flex:1;margin-top:0" onclick="startQuiz()">TEKRAR OYNA</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-title">⚙ Geliştirici Ayarları</div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">In-Memory Cache</div>
+        <div class="toggle-desc">Çevrilen soruları 24 saat bellekte sakla</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="cacheToggle" onchange="toggleCache(this.checked)" checked/>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="cache-stats" id="cacheStats">Yükleniyor...</div>
+    <div class="modal-actions">
+      <button class="btn-danger" onclick="clearCache()">🗑 Cache Temizle</button>
+      <button class="btn-close" onclick="closeSettings()">KAPAT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:4000/api';
+let questions=[], currentQ=0, score=0, answered=[];
+let timerInterval=null, timeLeft=30;
+const TIMER_MAX=30, CIRC=138.23;
+let showingEN = false; // for lang toggle
+
+// ── Pages ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => { loadCategories(); loadCacheStats(); });
+function showError(msg){ const e=document.getElementById('errorBanner'); e.textContent=msg; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),6000); }
+function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function goHome(){ clearInterval(timerInterval); showPage('homePage'); }
+
+// ── Categories ─────────────────────────────────────────────
+async function loadCategories(){
+  try{
+    const d=await fetch(`${API}/categories`).then(r=>r.json());
+    const sel=document.getElementById('categorySelect');
+    sel.innerHTML='<option value="">Tüm Kategoriler</option>';
+    d.categories.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+    document.getElementById('startBtn').disabled=false;
+  }catch(e){ document.getElementById('categorySelect').innerHTML='<option value="">Tüm Kategoriler</option>'; document.getElementById('startBtn').disabled=false; }
+}
+
+// ── Start ──────────────────────────────────────────────────
+async function startQuiz(){
+  showingEN=false;
+  const category=document.getElementById('categorySelect').value;
+  const difficulty=document.getElementById('difficultySelect').value;
+  const amount=Math.min(30,Math.max(5,parseInt(document.getElementById('amountInput').value)||10));
+  const type=document.getElementById('typeSelect').value;
+  showPage('loadingPage');
+  try{
+    const params=new URLSearchParams({amount,type});
+    if(category) params.set('category',category);
+    if(difficulty) params.set('difficulty',difficulty);
+    const d=await fetch(`${API}/questions?${params}`).then(r=>r.json());
+    if(!d.success) throw new Error(d.error||'Hata');
+    questions=d.questions; currentQ=0; score=0; answered=[];
+    renderQuestion();
+  }catch(e){ showPage('homePage'); showError('Yüklenemedi: '+e.message); }
+}
+
+// ── Render dispatcher ──────────────────────────────────────
+function renderQuestion(){
+  showingEN=false;
+  const q=questions[currentQ];
+  if(!q){ showResults(); return; }
+  if(q.type==='boolean') renderSwipe(q);
+  else renderMultiple(q);
+}
+
+// ── Lang toggle ────────────────────────────────────────────
+function toggleLang(mode){
+  const q=questions[currentQ];
+  if(!q) return;
+  showingEN=!showingEN;
+  const label = showingEN ? '🇹🇷 Türkçe' : '🇬🇧 İngilizce';
+  if(mode==='multi'){
+    document.getElementById('langToggleMulti').innerHTML=`<span class="flag">${showingEN?'🇹🇷':'🇬🇧'}</span> ${showingEN?'Türkçe':'İngilizce'}`;
+    const el=document.getElementById('qText');
+    el.textContent = showingEN ? (q.questionOriginal||q.question) : q.question;
+    el.className='question-text'+(showingEN?' en':'');
+    // also toggle answers for multiple
+    const btns=document.querySelectorAll('.answer-btn');
+    btns.forEach((btn,i)=>{
+      const span=btn.querySelector('span:last-child');
+      if(!span) return;
+      const trText=q.answers[i];
+      const enText=q.answersOriginal ? (q.answersOriginal[trText]||trText) : trText;
+      span.textContent=showingEN?enText:trText;
+      btn.style.color=showingEN?'var(--accent3)':'';
+    });
+  } else {
+    document.getElementById('langToggleSwipe').innerHTML=`<span class="flag">${showingEN?'🇹🇷':'🇬🇧'}</span> ${showingEN?'Türkçe':'İngilizce'}`;
+    const el=document.getElementById('swipeQuestion');
+    el.textContent=showingEN?(q.questionOriginal||q.question):q.question;
+    el.className='swipe-card-question'+(showingEN?' en':'');
+  }
+}
+
+// ── MULTIPLE CHOICE ────────────────────────────────────────
+function renderMultiple(q){
+  const total=questions.length;
+  document.getElementById('progressBar').style.width=`${(currentQ/total)*100}%`;
+  document.getElementById('qCounter').textContent=`${currentQ+1} / ${total}`;
+  const badge=document.getElementById('diffBadge');
+  const diffMap={easy:['Kolay','easy'],medium:['Orta','medium'],hard:['Zor','hard']};
+  const [lbl,cls]=diffMap[q.difficulty]||['Orta','medium'];
+  badge.textContent=lbl; badge.className=`badge ${cls}`;
+  document.getElementById('qCategory').textContent=q.category;
+  document.getElementById('qText').textContent=q.question;
+  document.getElementById('qText').className='question-text';
+  document.getElementById('langToggleMulti').innerHTML='<span class="flag">🇬🇧</span> İngilizce';
+  const grid=document.getElementById('answersGrid');
+  grid.innerHTML='';
+  ['A','B','C','D'].forEach((letter,i)=>{
+    if(!q.answers[i]) return;
+    const btn=document.createElement('button');
+    btn.className='answer-btn';
+    btn.innerHTML=`<span class="letter">${letter}</span><span>${q.answers[i]}</span>`;
+    btn.onclick=()=>selectMultiple(i,q.answers[i]===q.correctAnswer);
+    grid.appendChild(btn);
+  });
+  document.getElementById('nextBtn').classList.remove('visible');
+  showPage('quizPage');
+  startTimer('timerCircle','timerNum','timerRing',()=>timeExpiredMultiple());
+}
+
+function selectMultiple(idx,isCorrect){
+  clearInterval(timerInterval);
+  const q=questions[currentQ];
+  const btns=document.querySelectorAll('.answer-btn');
+  const chosenText=btns[idx].querySelector('span:last-child').textContent;
+  answered.push({q:q.question,correct:q.correctAnswer,chosen:chosenText,ok:isCorrect,type:'multiple'});
+  if(isCorrect){ score++; btns[idx].classList.add('correct'); }
+  else{
+    btns[idx].classList.add('wrong');
+    btns.forEach(btn=>{ if(btn.querySelector('span:last-child').textContent===q.correctAnswer) btn.classList.add('correct'); });
+  }
+  btns.forEach(b=>b.disabled=true);
+  document.getElementById('nextBtn').classList.add('visible');
+}
+
+function timeExpiredMultiple(){
+  const q=questions[currentQ];
+  answered.push({q:q.question,correct:q.correctAnswer,chosen:null,ok:false,type:'multiple'});
+  document.querySelectorAll('.answer-btn').forEach(b=>{ b.disabled=true; if(b.querySelector('span:last-child').textContent===q.correctAnswer) b.classList.add('correct'); });
+  document.getElementById('nextBtn').classList.add('visible');
+}
+
+// ── SWIPE / BOOLEAN ───────────────────────────────────────
+let swipeAnswered=false;
+let dragStartX=0, dragStartY=0, dragX=0;
+let isDragging=false;
+
+function renderSwipe(q){
+  swipeAnswered=false;
+  showingEN=false;
+  const total=questions.length;
+  document.getElementById('swipeProgressBar').style.width=`${(currentQ/total)*100}%`;
+  document.getElementById('swipeCounter').textContent=`${currentQ+1} / ${total}`;
+  const diffMap={easy:['Kolay','easy'],medium:['Orta','medium'],hard:['Zor','hard']};
+  const [lbl,cls]=diffMap[q.difficulty]||['Orta','medium'];
+  document.getElementById('swipeDiffBadge').textContent=lbl;
+  document.getElementById('swipeDiffBadge').className=`badge ${cls}`;
+  document.getElementById('swipeCategory').textContent=q.category;
+  document.getElementById('swipeQuestion').textContent=q.question;
+  document.getElementById('swipeQuestion').className='swipe-card-question';
+  document.getElementById('langToggleSwipe').innerHTML='<span class="flag">🇬🇧</span> İngilizce';
+
+  // Reset card
+  const card=document.getElementById('swipeCard');
+  card.className='swipe-card';
+  card.style.transform='';
+  card.style.opacity='';
+  card.querySelectorAll('.stamp').forEach(s=>s.style.opacity='0');
+
+  // Reset result overlay
+  const res=document.getElementById('swipeResult');
+  res.className='swipe-result';
+
+  // Reset buttons
+  document.getElementById('btnTrue').disabled=false;
+  document.getElementById('btnFalse').disabled=false;
+  document.getElementById('swipeNextBtn').classList.remove('visible');
+  document.getElementById('hintLeft').style.opacity='0';
+  document.getElementById('hintRight').style.opacity='0';
+
+  setupSwipeDrag();
+  showPage('swipePage');
+  startTimer('swipeTimerCircle','swipeTimerNum','swipeTimerRing',()=>timeExpiredSwipe());
+}
+
+function swipeAnswer(answer){
+  if(swipeAnswered) return;
+  swipeAnswered=true;
+  clearInterval(timerInterval);
+  const q=questions[currentQ];
+  const correct=answer===q.correctAnswer;
+  if(correct) score++;
+  answered.push({q:q.question,correct:q.correctAnswer,chosen:answer,ok:correct,type:'boolean'});
+
+  // Animate card out
+  const card=document.getElementById('swipeCard');
+  card.classList.add('animating');
+  card.classList.add(answer==='True'?'decided-right':'decided-left');
+
+  // Show result overlay
+  const res=document.getElementById('swipeResult');
+  setTimeout(()=>{
+    res.className='swipe-result show '+(correct?'correct-res':'wrong-res');
+    document.getElementById('resIcon').textContent=correct?'✓':'✗';
+    document.getElementById('resText').textContent=correct?'Doğru!':'Yanlış!';
+    document.getElementById('resAnswer').textContent=correct?'':'Doğru cevap: '+q.correctAnswer;
+    document.getElementById('swipeNextBtn').classList.add('visible');
+  },350);
+
+  document.getElementById('btnTrue').disabled=true;
+  document.getElementById('btnFalse').disabled=true;
+}
+
+function timeExpiredSwipe(){
+  if(swipeAnswered) return;
+  swipeAnswered=true;
+  const q=questions[currentQ];
+  answered.push({q:q.question,correct:q.correctAnswer,chosen:null,ok:false,type:'boolean'});
+  const res=document.getElementById('swipeResult');
+  res.className='swipe-result show wrong-res';
+  document.getElementById('resIcon').textContent='⏰';
+  document.getElementById('resText').textContent='Süre Doldu!';
+  document.getElementById('resAnswer').textContent='Doğru cevap: '+q.correctAnswer;
+  document.getElementById('swipeNextBtn').classList.add('visible');
+  document.getElementById('btnTrue').disabled=true;
+  document.getElementById('btnFalse').disabled=true;
+}
+
+// Drag / swipe gesture
+function setupSwipeDrag(){
+  const card=document.getElementById('swipeCard');
+  // Remove old listeners by cloning
+  const newCard=card.cloneNode(true);
+  card.parentNode.replaceChild(newCard,card);
+  const c=document.getElementById('swipeCard');
+
+  // Re-attach lang toggle click
+  c.querySelector('#langToggleSwipe').onclick=()=>toggleLang('swipe');
+
+  function onStart(clientX){
+    if(swipeAnswered) return;
+    isDragging=true; dragStartX=clientX; dragX=0;
+  }
+  function onMove(clientX){
+    if(!isDragging||swipeAnswered) return;
+    dragX=clientX-dragStartX;
+    const rot=dragX*0.08;
+    c.style.transform=`translateX(${dragX}px) rotate(${rot}deg)`;
+    // stamps
+    const trueStamp=c.querySelector('.stamp-true');
+    const falseStamp=c.querySelector('.stamp-false');
+    if(dragX>20){ trueStamp.style.opacity=Math.min((dragX-20)/60,1); falseStamp.style.opacity=0; }
+    else if(dragX<-20){ falseStamp.style.opacity=Math.min((-dragX-20)/60,1); trueStamp.style.opacity=0; }
+    else{ trueStamp.style.opacity=0; falseStamp.style.opacity=0; }
+    // hints
+    document.getElementById('hintRight').style.opacity=dragX>20?Math.min((dragX-20)/80,1):0;
+    document.getElementById('hintLeft').style.opacity=dragX<-20?Math.min((-dragX-20)/80,1):0;
+  }
+  function onEnd(){
+    if(!isDragging) return; isDragging=false;
+    if(swipeAnswered) return;
+    if(dragX>90) swipeAnswer('True');
+    else if(dragX<-90) swipeAnswer('False');
+    else{
+      c.classList.add('snap-back');
+      c.style.transform='';
+      c.querySelectorAll('.stamp').forEach(s=>s.style.opacity='0');
+      document.getElementById('hintLeft').style.opacity='0';
+      document.getElementById('hintRight').style.opacity='0';
+      setTimeout(()=>c.classList.remove('snap-back'),350);
+    }
+  }
+  // Mouse
+  c.addEventListener('mousedown',e=>onStart(e.clientX));
+  window.addEventListener('mousemove',e=>{ if(isDragging) onMove(e.clientX); });
+  window.addEventListener('mouseup',()=>{ if(isDragging) onEnd(); });
+  // Touch
+  c.addEventListener('touchstart',e=>onStart(e.touches[0].clientX),{passive:true});
+  c.addEventListener('touchmove',e=>onMove(e.touches[0].clientX),{passive:true});
+  c.addEventListener('touchend',onEnd);
+}
+
+// ── Next question ──────────────────────────────────────────
+function nextQuestion(){
+  currentQ++;
+  if(currentQ>=questions.length) showResults();
+  else renderQuestion();
+}
+
+// ── Timer ──────────────────────────────────────────────────
+function startTimer(circleId,numId,ringId,onExpire){
+  clearInterval(timerInterval);
+  timeLeft=TIMER_MAX;
+  updateTimerUI(circleId,numId,ringId);
+  timerInterval=setInterval(()=>{
+    timeLeft--; updateTimerUI(circleId,numId,ringId);
+    if(timeLeft<=0){ clearInterval(timerInterval); onExpire(); }
+  },1000);
+}
+function updateTimerUI(circleId,numId,ringId){
+  document.getElementById(numId).textContent=timeLeft;
+  document.getElementById(circleId).style.strokeDashoffset=CIRC*(1-timeLeft/TIMER_MAX);
+  document.getElementById(ringId).classList.toggle('urgent',timeLeft<=8);
+}
+
+// ── Results ────────────────────────────────────────────────
+function showResults(){
+  clearInterval(timerInterval);
+  const total=questions.length, pct=Math.round((score/total)*100);
+  document.getElementById('scoreNum').textContent=score;
+  document.getElementById('scoreTotal').textContent=`/ ${total} doğru`;
+  document.getElementById('resultPct').textContent=`%${pct} başarı`;
+  const titles=[[0,40,'DAHA FAZLA ÇALIŞMAK LAZIM'],[40,60,'FENA DEĞİL!'],[60,80,'OLDUKÇA İYİ!'],[80,95,'MÜKEMMEL!'],[95,101,'EFSANESİN! 🏆']];
+  const [,,title]=titles.find(([lo,hi])=>pct>=lo&&pct<hi)||titles[0];
+  document.getElementById('resultTitle').textContent=title;
+  const color=pct>=60?'var(--easy)':pct>=40?'var(--medium)':'var(--hard)';
+  document.getElementById('scoreRing').style.borderColor=color;
+  document.getElementById('scoreNum').style.color=color;
+  const list=document.getElementById('breakdownList');
+  list.innerHTML='';
+  answered.forEach(a=>{
+    const div=document.createElement('div'); div.className='breakdown-item';
+    const typeIcon=a.type==='boolean'?'↕':'☰';
+    div.innerHTML=`
+      <div class="breakdown-icon ${a.ok?'ok':'no'}">${a.ok?'✓':'✗'}</div>
+      <div style="flex:1">
+        <div class="breakdown-q">${a.q}</div>
+        <div class="breakdown-meta">
+          ${a.type==='boolean'?'<span style="color:var(--accent3);font-size:.7rem">D/Y</span>':'<span style="color:var(--text-dim);font-size:.7rem">Çoktan seçmeli</span>'}
+          &nbsp;
+          ${a.ok?`<span class="c">✓ ${a.correct}</span>`:`<span class="w">Senin: ${a.chosen||'Süre doldu'}</span> → <span class="c">Doğru: ${a.correct}</span>`}
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+  showPage('resultsPage');
+}
+
+// ── Settings ───────────────────────────────────────────────
+function openSettings(){ loadCacheStats(); document.getElementById('settingsModal').classList.add('open'); }
+function closeSettings(){ document.getElementById('settingsModal').classList.remove('open'); }
+async function loadCacheStats(){
+  try{
+    const d=await fetch(`${API}/settings`).then(r=>r.json());
+    const c=d.cache;
+    document.getElementById('cacheToggle').checked=c.enabled;
+    document.getElementById('cacheStats').innerHTML=`Durum: <strong>${c.enabled?'Açık':'Kapalı'}</strong> &nbsp;|&nbsp; Toplam: <strong>${c.total}</strong> &nbsp;|&nbsp; Geçerli: <strong>${c.valid}</strong> &nbsp; Dolmuş: <strong>${c.expired}</strong>`;
+  }catch{ document.getElementById('cacheStats').textContent='Backend bağlantısı yok.'; }
+}
+async function toggleCache(enabled){
+  try{ await fetch(`${API}/settings/cache`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})}); await loadCacheStats(); }
+  catch{ showError('Ayar kaydedilemedi.'); }
+}
+async function clearCache(){
+  try{ await fetch(`${API}/settings/cache`,{method:'DELETE'}); await loadCacheStats(); }
+  catch{ showError('Cache temizlenemedi.'); }
+}
+document.getElementById('settingsModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeSettings(); });
+</script>
+</body>
+</html>
